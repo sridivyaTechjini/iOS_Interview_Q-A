@@ -1,0 +1,610 @@
+==================== Design Patterns=========================
+Design Patterns are reusable solutions to commonly occurring problems. Design patterns encourages us to write clean and modular code. Every design pattern thrives on one concept, avoid touching the working code. We all know that once we touch working code, unknowingly we introduce defects, and a lot more testing needs to be done to ensure that we didn’t break anything.
+
+These patterns helps minimise code duplication, prevents tight coupling and standardise way of writing code. The motto is to design flexible and reusable object-oriented code.
+
+History: Design patterns were started as best practices and later they become popular after they were collected in a formal form in the Gang Of Four book.
+We will discuss about four major types of design patterns:
+
+//=============Creational Design Pattern
+Creational design patterns are design patterns that deal with object creation mechanisms. The basic form of object creation could result in design problems thus to solve we have few creational design patterns.
+Why use Creational Pattern?
+It encapsulates object creation code, so that all object creation code is in one place, and any modifications would require changes only in one place.
+Code becomes more unit testable.
+It encourages Open Close & Dependency Inversion of SOLID principles, which is open for extension and closed for modification and high level modules shouldn’t directly depend on low level modules.
+Makes dynamic object creation simple, whereby the required concrete type can be returned based on some parameters. In real use cases we don’t generally create object by just init() rather we pass some type to it for example CarType.
+enum CarType{
+  Sedan,
+  SUV,
+  HatchBack
+}
+createCar(type: CarType) -> Car
+Example: Factory, Factory Method, Abstract Factory, Singleton, Prototype
+
+===============//
+
+//================Behavioural Design Pattern
+Behavioural design patterns are concerned about interaction among objects. It provide solution for better interaction between objects while being loosely coupled with each other. Here are some examples of interactions:
+—Hey, let me know if any update.
+— Guys, I will let you all know when I have something to say.
+— Do you know who lives next to your house?
+Why use Behavioural Pattern?
+— Encapsulate behaviours of object.
+— Divide responsibilities among objects.
+—Makes interaction among objects simple, and less dependent on each-other.
+Example: Iterator, Delegation, Observer, Chain Of Responsibility, Memento
+===============//
+
+
+//==================Structural Design Patterns
+Structural design patterns are concerned about relationship among objects. Structural patterns explains how to assemble smaller components into larger structures, add new functionalities, while keeping the structures flexible and loosely coupled. It deals in inheritance and compositions.
+Why use Structural Pattern?
+— Enhances reusability.
+— Reduces complexity by providing cleaner, simpler way to use a system.
+— Helps in adding functionalities without modifying internal structure.
+Example: Adapter, Facade, Decorator
+==================//
+
+//==============Architectural Design Pattern
+Architectural patterns are similar to other design patterns like creational, behavioural, structural etc. but have a broader scope. These patterns considers multiple layers of a system, like presentation layer, business layer, persistence layer.
+Why use Architectural Pattern?
+— Makes applications flexible and scalable.
+— Makes code modular and avoids code duplication.
+—Enable change quicker.
+Example: MVC, MVVM, VIPER
+==================//
+
+
+
+
+======== Momento Design pattern ===========
+ This pattern in iOS is used as a part of state restoration. That is this externalized state can be restored without violating any encapsulation. This pattern is especially used for the archiving in Apple.
+
+
+Memento pattern provides the ability to restore an object to its previous state. These are like checkpoints which can be saved and later restored. Memento pattern classified as behavioral pattern.
+
+Use Case:
+— When something goes wrong in current state of a component, it can at-least go back to last working state.
+— It let the user resume the work right where from where they left, even after stopping and re-running the app.
+
+Apple platform have an example of this design pattern, it is using NSCoding with NSArchiving and NSUndoManager.
+
+Everyone might have used Note apps, and must have mis-typed, so what we do Undo and Redo right?, that is memento. Though I don’t know which design pattern these note apps follow internally, but these are example of memento pattern.
+
+Steps memento pattern follow:
+— Originator: Creates memento for it’s its current internal state.
+—Memento: Keeps current state of the Originator object. It’s like a DTO.
+— Caretaker: Saves and Restores mementos.
+
+
+Example:
+// Note.swift
+import Foundation
+struct Note {
+    var text: String
+    var lastModified: Date
+}
+// NoteMemento.swift
+import Foundation
+class NoteMemento {
+    var note: Note!
+    init(note: Note) {
+        self.note = note
+    }
+}
+import UIKit
+class NoteCaretaker {
+    let NoteMementoKey = "NoteMementoKey"
+    func saveMemento(noteMemento: NoteMemento) {
+        let userDefaults = UserDefaults.standard
+        userDefaults.set(noteMemento, forKey: NoteMementoKey)
+        userDefaults.synchronize()
+    }
+    func restoreMemento() -> NoteMemento? {
+        let userDefaults = UserDefaults.standard
+        if let memento = userDefaults.value(forKey: NoteMementoKey){
+            return memento as? NoteMemento
+        }
+        return nil
+    }
+}
+import UIKit
+class NoteOriginatorViewController: UIViewController, UITextViewDelegate {
+    var noteTextView: UITextView!
+    var lastModified: Date!
+    
+    func createUI() {
+        noteTextView = UITextView.init()
+        noteTextView?.frame = CGRect.init(x: 10, y: 10, width: 300,
+        height: 300)
+        self.view.addSubview(noteTextView)
+        self.noteTextView.delegate = self
+        // restored the note memento, so that user can see the what
+           she modified last time.
+        let noteCaretaker = NoteCaretaker.init()
+        let noteMemento = noteCaretaker.restoreMemento()
+        self.noteTextView.text = noteMemento!.note.text
+        self.lastModified = noteMemento!.note.lastModified
+    }
+    func textViewDidChange(_ textView: UITextView) {
+        self.lastModified = Date()
+        let note = Note.init(text: self.noteTextView.text,
+        lastModified: self.lastModified)
+        // creating a memento of note to be stored.
+        let noteMemento = NoteMemento.init(note: note)
+        let noteCaretaker = NoteCaretaker.init()
+        // Saving the state
+        noteCaretaker.saveMemento(noteMemento: noteMemento)
+    }
+}
+
+
+It was a custom solution and an example of Memento which demonstrated the saving and restoring state of a Note taking app. Now let’s see how we can achieve the same using built in api.
+// NoteOriginatorViewControllerNative.swift
+import UIKit
+class NoteOriginatorViewControllerNative: UIViewController, UITextViewDelegate {
+    var noteTextView: UITextView!
+    var lastModified: Date!
+    let NoteMementoKey = "NoteMementoKey"
+    func createUI() {
+        noteTextView = UITextView.init()
+        noteTextView?.frame = CGRect.init(x: 10, y: 10, width: 300,
+        height: 300)
+        self.view.addSubview(noteTextView)
+        self.noteTextView.delegate = self
+        // restored the note memento, so that user can see the what
+           she modified last time.
+        let note = restoreMemento()
+        self.noteTextView.text = note?.text
+        self.lastModified = note?.lastModified
+    }
+    func textViewDidChange(_ textView: UITextView) {
+        self.lastModified = Date()
+        // Saving the state
+        let note = NoteNative.init(text: self.noteTextView.text,
+                   lastModified: self.lastModified)
+        self.saveMemento(noteMemento: note)
+    }
+    func saveMemento(noteMemento: NoteNative) {
+        if let savedMemento = try?
+                NSKeyedArchiver.archivedData(withRootObject:
+                noteMemento, requiringSecureCoding: false) {
+            let defaults = UserDefaults.standard
+            defaults.set(savedMemento, forKey: NoteMementoKey)
+            defaults.synchronize()
+        }
+    }
+    func restoreMemento() -> NoteNative? {
+        let defaults = UserDefaults.standard
+        if let savedMemento = defaults.object(forKey:
+        NoteMementoKey) as? Data {
+            if let decodedMemento = try?
+               NSKeyedUnarchiver.unarchiveTopLevelObjectWithData
+               (savedMemento) as?  NoteNative {
+                return decodedMemento
+            }
+        }
+        return nil
+    }
+}
+import UIKit
+class NoteNative: NSCoding {
+    var text: String?
+    var lastModified: Date?
+    let Text = "Text"
+    let LastModified = "LastModified"
+    init(text: String, lastModified: Date) {
+        self.text = text
+        self.lastModified = lastModified
+    }
+    func encode(with aCoder: NSCoder) {
+        aCoder.encode(self.Text, forKey: Text)
+        aCoder.encode(self.lastModified, forKey: LastModified)
+    }
+    required init?(coder aDecoder: NSCoder) {
+        if let text = aDecoder.decodeObject(forKey: Text){
+            self.text = text as? String
+        }
+        if let lastModified = aDecoder.decodeObject(forKey: Text){
+            self.lastModified = (lastModified as? Date)
+        }
+    }
+}
+Using NSCoding and NSKeyedArchiver we have implemented the same Memento features as our previous custom Note taking app.
+
+========= Adapter Design Pattern ===================
+Adapter – It lets the classes with incompatible interfaces to work together and it wraps itself around the object to expose a standard interface to interact with that object.
+
+How to use the adapter pattern in Swift?
+You can use an adapter if you want to integrate a third-party library in your code, but it's interface doesn't match with your requirements. For example you can create a wrapper around an entire SDK or backend API endpoints in order to create a common denominator. 👽
+In my example, I'm going to wrap an EKEvent object with an adapter class to implement a brand new protocol. 📆
+import Foundation
+import EventKit
+
+// our target protocol
+protocol Event {
+    var title: String { get }
+    var startDate: String { get }
+    var endDate: String { get }
+}
+
+// adapter (wrapper class)
+class EventAdapter {
+
+    private lazy var dateFormatter: DateFormatter = {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy. MM. dd. HH:mm"
+        return dateFormatter
+    }()
+
+    private var event: EKEvent
+
+    init(event: EKEvent) {
+        self.event = event
+    }
+}
+
+// actual adapter implementation
+extension EventAdapter: Event {
+
+    var title: String {
+        return self.event.title
+    }
+    var startDate: String {
+        return self.dateFormatter.string(from: event.startDate)
+    }
+    var endDate: String {
+        return self.dateFormatter.string(from: event.endDate)
+    }
+}
+
+// let's create an EKEvent adaptee instance
+let dateFormatter = DateFormatter()
+dateFormatter.dateFormat = "MM/dd/yyyy HH:mm"
+
+let calendarEvent = EKEvent(eventStore: EKEventStore())
+calendarEvent.title = "Adapter tutorial deadline"
+calendarEvent.startDate = dateFormatter.date(from: "07/30/2018 10:00")
+calendarEvent.endDate = dateFormatter.date(from: "07/30/2018 11:00")
+
+// now we can use the adapter class as an Event protocol, instead of an EKEvent
+let adapter = EventAdapter(event: calendarEvent)
+// adapter.title
+// adapter.startDate
+// adapter.endDate
+
+====== Observer Design Pattern =========
+Observer pattern deals in communication between objects. It defines a one-to-many relationship, when an object changes state it notifies a list of objects. Observer pattern is classified as the behavioral design pattern. It ultimately helps decouple senders and receivers.
+
+Observer pattern deals in communication between objects. It defines a one-to-many relationship, when an object changes state it notifies a list of objects. Observer pattern is classified as the behavioral design pattern. It ultimately helps decouple senders and receivers.
+One Liner:
+— Guys, don’t worry I will let you all know as soon as I will complete the task.
+Radio station can be an example for this pattern, as we all know it broadcasts music to all it’s listeners. As long as listeners are interested (or rather driving car) they listen to radio and before they are off to work, they turn it off and no longer receives the broadcast but radio station doesn’t stop broadcasting so, whenever listeners are interested they can join in.
+Let’s see an Example:
+// RadioStation.swift
+import Foundation
+import UIKit
+class RadioStation {
+    var playlist: [String] = ["Hotline Bling", "Everyday",
+    "Despacito, High Hopes"]
+    var listeners: [ListenerProtocol] = []
+    
+    init() {
+        var songNumber = 0
+        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) {
+            (time) in
+            self.changeMusic(song: self.playlist[songNumber])
+            songNumber = self.playlist.count == songNumber ? 0 : +1
+        }
+    }
+    func changeMusic(song: String) {
+        notify(song: song)
+    }
+    func notify(song: String) {
+        listeners.forEach { (listener) in
+            listener.update(song: song)
+        }
+    }
+    func addListener(listener: ListenerProtocol) {
+        listeners.append(listener)
+    }
+    func removeListener(listener: ListenerProtocol) {
+        listeners = listeners.filter{$0.id == listener.id}
+    }
+}
+protocol ListenerProtocol {
+    var id: Int {get}
+    func update(song: String)
+}
+// Listener.swift
+import Foundation
+class Listener: ListenerProtocol {
+    var id: Int
+    init(id: Int) {
+        self.id = id
+    }
+    func update(song: String) {
+        print("New Song Being Played :", song)
+    }
+}
+class RadioViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let radioStation = RadioStation.init()
+        
+        let listener = Listener.init(id: 100)
+        radioStation.addListener(listener: listener)
+        let listener1 = Listener.init(id: 101)
+        radioStation.addListener(listener: listener1)
+        let listener2 = Listener.init(id: 102)
+        radioStation.addListener(listener: listener2)
+        
+        radioStation.removeListener(listener: listener1)
+        radioStation.removeListener(listener: listener2)
+    }
+}
+Apple platform have a similar component called NSNotificationCenter in Swift it is NotificationCenter. We can use NotificationCenter to send and receive notifications.
+// RadioStationDefault.swift
+import Foundation
+import UIKit
+class RadioStationDefault {
+    var playlist: [String] = ["Hotline Bling", "Everyday", "Despacito, High Hopes"]
+    
+    func start() {
+        var songNumer = 0
+        Timer.scheduledTimer(withTimeInterval: 5, repeats: true) {
+            (time) in
+            self.changeMusic(song: self.playlist[songNumber])
+            songNumber = self.playlist.count == songNumber ? 0 : +1
+        }
+    }
+    func changeMusic(song: String) {
+        notify(song: song)
+    }
+    func notify(song: String) {
+        let notification = Notification.init(name:
+            NSNotification.Name(rawValue: "MusicNotification"),
+            object: nil, userInfo: [song: "Song"])
+        NotificationCenter.default.post(notification)
+    }
+}
+class RadioViewControllerDefault: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let radioStation = RadioStationDefault.init()
+        let listener = ListenerDefault.init()
+        listener.startListening()
+        radioStation.start()
+    }
+}
+// ListenerDefault.swift
+import Foundation
+class ListenerDefault {
+    func startListening() {
+        NotificationCenter.default.addObserver(self, selector:
+        #selector(update(notification:)), name:
+        NSNotification.Name(rawValue: "MusicNotification"), object:
+        nil)
+    }
+    @objc func update(notification: NSNotification) {
+        let song = notification.userInfo?["Song"]
+        print("New Song Being Played :", song as Any)
+    }
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+}
+Pros:
+— Makes Sender and Listeners loosely coupled
+— Sender and Listeners are independent of each other, therefore, changes will not affect each other.
+Cons:
+— If misused, it can add complexity and lead to performance issues, like not unsubscribing even when listener is not listening.
+
+
+
+======== Facade Disgn Pattern=============
+How do you pronounce, Facade? — Faa..SS..aa.D
+Meaning of Facade? — front of a building, that faces on to a street.
+
+Facade pattern provides a simplified component to a large list of complex subsystems. It clubs the subsystems in a single place to make it easier to use. It is classified as structural design pattern. It’s ultimate goal is to provide nice and clean api with a lot of complex code modules plugged underneath.
+Let’s understand the concept through an example of BurgerQueen restaurant. Assume BurgerQueen restaurant have an App through which user can place order to get the Burger delivered at home. There are several steps this app follows before burger gets delivered.
+
+— It takes the menu item to be prepared.
+— Accepts the payment.
+— Once ready, assign delivery person to get the burger delivered.
+Underneath it follows three steps, but all that users do is, tap a button and wait for hot burger.
+
+Example:
+// OrderManager.swift
+import UIKit
+class OrderManager{
+    func placeOrder(menuItems: [MenuItem]) {
+        let paymentController = PaymentController.init()
+        let paymentResult = paymentController.processPayment(
+        menuItems: menuItems, card: 12345)
+        if paymentResult.succss {
+            let homeDelivery = HomeDeliveryController.init()
+            homeDelivery.assignDeliveryPerson(paymentToken:
+            paymentResult.token, person: "Brad")
+            print("Yay...completed the order!")
+        }
+    }
+}
+// PaymentController.swift
+import UIKit
+class PaymentController {
+    func processPayment(menuItems: [MenuItem], card: Int) -> (token:
+    Int, success: Bool) {
+        print("Success! Received Payment \n from card: %d ",
+        totalCost(menuItems: menuItems), card)
+        return (123, true)
+    }
+    func totalCost(menuItems: [MenuItem]) -> Double {
+        var cost = 0.0
+        menuItems.forEach { (item) in
+            cost += item.price
+        }
+        return cost
+    }
+}
+// HomeDeliveryController.swift
+import UIKit
+class HomeDeliveryController {
+    func assignDeliveryPerson(paymentToken: Int, person: String) {
+        print("Delivery person assigned, burger on the way.")
+    }
+}
+// BurgerQueenViewController.swift
+import UIKit
+class BurgerQueenViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let orderManager = OrderManager.init()
+        orderManager.placeOrder(menuItems:
+        [MenuItem.init(name:"CheeseGrilled", price: 2)])
+    }
+}
+struct MenuItem {
+    var name: String
+    var price: Double
+}
+Advantages:
+— It makes easier to use one component without worrying about how multiple complex component works together.
+— Make the component more readable and easy to use.
+Disadvantages:
+— Subsystem methods are tightly coupled in Facade Component. Any change in subsystem changes requires subsequent change to the Facade Component.
+
+============== Decorator Design Pattern =================================
+Decorator pattern is a design pattern that allows behavior to be added to an individual object without altering its structure.
+
+To add new functionality to an existing object we have inheritance but you know inheritance have it’s own pitfalls. Decorator pattern gives an alternative to subclassing. This type of design pattern comes under structural pattern. This design pattern also popularly called as Wrapper like Adapter pattern, because it adds wrapper around an existing object. Decorator pattern follows one of the SOLID principle which is — open for extension but closed for modification.
+
+How it works?
+—Implement the interface of the original class into a Decorator class.
+— In the Decorator class, define the original object as a variable.
+— In the Decorator class, take original object as parameter of the constructor.
+— Define ConcreteDecorator class a subclass of Decorator class and override any method(s) whose behavior needs to be modified.
+Now let’s understand the concept through an example of Pizza making. Assume we have a store which sells PlainPizza and we have been selling it for long, but one fine day our chef decided to give taste buds of our customer a surprise! She choose to add nice new topping options like Green Pepper, Paneer, and Spinach. App developer was listening to all these but he didn’t look impressed, as he had to support these new types in our nice and stable app. So after some surfing here and there on internet he found something called decorator pattern which suits for this kind of change on an existing component. Let’s see the below example on how he supported all new pizza toppings:
+Example:
+// PlainPizza.swift
+import UIKit
+// This is a concrete class following PizzaProtocol.
+class PlainPizza: PizzaProtocol {
+    var doughCost: Double
+    var toppingCost: Double
+    init(doughCost: Double, toppingCost: Double) {
+        self.doughCost = doughCost
+        self.toppingCost = toppingCost
+    }
+    func cost() -> Double {
+        let makingCharge = 5.0
+        return doughCost + toppingCost + makingCharge
+    }
+}
+protocol PizzaProtocol {
+    func cost() -> Double
+}
+// PizzaDecorator.swift
+import UIKit
+// This is a decorator class allowing other class to be like..
+// PlainPizza but can have added functionalities.
+class PizzaDecorator: PizzaProtocol {
+    var plainPizza: PlainPizza!
+    init(plainPizza: PlainPizza) {
+        self.plainPizza = plainPizza
+    }
+    func cost() -> Double {
+        return plainPizza.cost()
+    }
+}
+// TastyPizza.swift
+import UIKit
+// PizzaDecorator gives capability to this class to have added..
+// functionalities on top of PlanPizza.
+class TastyPizza: PizzaDecorator {
+    var toppings:[Topping]?
+    override func cost() -> Double {
+        var pizzaCost = super.cost()
+        toppings?.forEach({ (topping) in
+            pizzaCost += Double(topping.price)
+        })
+        return pizzaCost
+    }
+    func makeBrickOvenPizza() {
+        print("Yass..Pizza is on fire!!!")
+    }
+}
+struct Topping {
+    var name: String
+    var price: Double
+}
+// PizzaStoreViewController.swift
+// This is screen where we list menu of all pizzas, old and new.
+import UIKit
+class PizzaMenuViewController: UIViewController {
+override func viewDidLoad() {
+        super.viewDidLoad()
+        let plainPizza = PlainPizza.init(doughCost: 10, toppingCost:
+        5)
+        let tastyPizza = TastyPizza.init(plainPizza: plainPizza)
+        let paneerTopping = Topping.init(name: "Paneer", price: 7)
+        tastyPizza.toppings = [paneerTopping]
+        
+        let tastyPizza1 = TastyPizza.init(plainPizza: plainPizza)
+        let greenPepperTopping = Topping.init(name: "Green Pepper",
+        price: 6)
+        let spinachTopping = Topping.init(name: "Spinach", price: 4)
+        tastyPizza1.toppings = [greenPepperTopping, spinachTopping]
+        
+        let pizzas: [PizzaProtocol] = [plainPizza, tastyPizza,
+        tastyPizza1]
+        showPizzaMenu(pizzas: pizzas)
+    }
+    func showPizzaMenu(pizzas: [PizzaProtocol]) {
+        pizzas.forEach { (pizza) in
+            print(pizza.cost())
+        }
+    }
+}
+
+Advantages:
+— It helps in adding new functionalities to an existing object without modifying it.
+— The decorator pattern is an alternative to subclassing. Changes in parent class affects all instances in case of subclassing while decorator avoids it.
+Disadvantages:
+— Decorators can complicate the process of instantiating. Because object of original component have to be passed and the wrap it using decorators.
+
+============ Prototype Design Pattern ================
+
+Prototype design pattern creates object by cloning an existing object. It is a pretty simple design pattern. It is a creational design pattern and like any other creational pattern it also encapsulates the process of creating objects.
+Prototype means something that serves or illustrate the typical qualities of an object. eg. She is the prototype of a student activist.
+It clones the object by taking current values, pass on to the new one while creating instance.
+
+Example:
+import UIKit
+protocol CloneDelegate {
+    func clone()-> Any
+}
+class TitleLabel: CloneDelegate {
+    var color: UIColor!
+    var cornerRadius: Bool!
+    
+    init(color: UIColor, cornerRadius: Bool) {
+        self.color = color
+        self.cornerRadius = cornerRadius
+    }
+    func clone() -> Any {
+        return TitleLabel.init(color: self.color,
+                cornerRadius: cornerRadius)
+    }
+}
+class ShoppingCartController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        let cartTitleLabel = TitleLabel.init(color: UIColor.black,
+           cornerRadius: true)
+        let paymentTitleLabel = cartTitleLabel.clone() as!
+           TitleLabel
+        print(paymentTitleLabel.color)
+    }
+}
+It is useful when a component is already configured once, and there is a need of almost similar object in another place, clone it. In the above example we have created a TitleLabel for ShoppingCart screen, then there is another screen called Payment screen which also have similar TitleLabel so we just cloned it instead of configuring it all over again.

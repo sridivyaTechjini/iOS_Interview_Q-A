@@ -1,0 +1,406 @@
+
+//=========Shallow vs Deep Copy
+Shallow copy: Change in value of original object reflects in the shallow copy. Both original and shallow copy have same memory address.
+Deep copy: Change in value of original object doesn’t reflect in the deep copy. Both original and shallow copy have different memory address.
+Copying objects of Value Type and Reference Type are slightly different. We need to understand how it works in Objective-C and Swift, both have different way of implementing also.
+========//
+
+//=========SOLID principle
+It represents 5 principles of object-oriented programming: Single responsibility, Open/Closed, Liskov Substitution, Interface Segregation and Dependency Inversion.
+If these principles are followed judiciously, one can improve the quality of code. Moreover, code becomes more maintainable, less fragile and reusable.
+
+1.Single Responsibility Principle:
+
+One class should only serve one purpose. All the methods and properties should work towards the same goal.
+So, when you see a class serving multiple purposes, then it should be refactored into a new class.
+Example:
+class ProductDetails: UIViewController {
+      override func viewDidLoad() {
+          showProductDetails(getListOfProducts()[0])
+      }
+      func showProductDetails(product: Product) {
+           self.titleLabel = product.title
+           self.subTitleLabel = product.subTitleLabel
+           self.image = product.image
+      }
+      func getListOfProducts() -> [Product] { //Violates
+           let dbManager = DBManager.init()
+           return dbManager.productsList()
+      }
+}
+The main purpose of class ProductDetails is to show details of a single product. Is it doing so? Nope! it is getting list of products also, which is violation of single responsibility principle.
+
+2.Open-closed Principle :
+ 
+Entities (classes, modules, functions, etc.) should be open of extension and closed for modification.
+It means one can add features to an existing class without touching it’s code.
+Let’s consider we are making an app for a Zoo. Which has a very active zoo keeper. Every now and then he brings new animals. Every time zoo gets a new animal we modify our already stable code. So is there a way we could avoid it? let’s see through an example, how it should be done, then we will see how it shouldn’t be done.
+
+Example:
+protocol Animal {
+  func canSwim() -> Bool
+  func numberOfLegs() -> Int
+}
+class Tiger: Animal {
+   func numberOfLegs() -> Int {
+      return 4
+   }
+   func canSwim() -> Bool {
+    return false
+  }
+}
+class Duck: Animal {
+    func numberOfLegs() -> Int {
+        return 2
+    }
+    func canSwim() -> Bool {
+        return true
+    }
+}
+=====
+Example 2:
+class Animal { //Violation of Principle
+   enum AnimalType{
+     case Tiger
+     case Duck
+   }
+   var animalType: AnimalType!
+   func numberOfLegs() -> Int {
+       if animalType == .Tiger{
+          return 4
+        }else if animalType == .Duck{
+          return 2
+        }else{
+          return -1
+        }
+   }
+   func canSwim() -> Bool {
+        if animalType == .Tiger{
+           return true
+        }else if animalType == .Duck{
+           return true
+        }else{
+           return false
+        }
+    }
+}
+
+As zoo keeper brings more and more animals we need to add more and more if-else conditions, soon the code becomes un-readable and fragile.
+Note: Basically through abstraction (interface/protocol, inheritance and extension) we can achieve this open closed principle.
+
+
+3.Liskov Substitution Principle(LSP)
+
+Subclass/derived class should be substitutable for their base/parent class.
+If the subtype is not replaceable for the supertype reference then it is a violation of LSP. Let’s try to understand through this classic example:
+class Rectangle {
+  var width: Int!
+  var height: Int!
+  func setWidth(width: Int) {
+     self.width = width
+  }
+  func setHeight(height: Int) {
+     self.height = height
+  }
+  func area() -> Int {
+     return self.width * self.height
+  }
+}
+class Square: Rectangle {
+   override func setWidth(width: Int) {
+      self.width = width
+   }
+   override func setHeight(height: Int) {
+      self.height = height
+   }
+   override func area() -> Int {
+      return self.width * self.width
+   }
+}
+class ViewController: UIViewController {
+      override func viewDidLoad() {
+         super.viewDidLoad()
+         let rect = getRectange()
+         rect.setWidth(width: 10)
+         rect.setHeight(height: 5)
+         print(rect.area())
+         // It should've returned 50 10*5 but it returns 100..
+         // because it is executing method of overridden..
+         // method of Square.
+      }
+      func getRectange() -> Rectangle {
+          return Square.init()
+      }
+}
+As we tried to replace object of superclass Rectangle with subclass Square, we got different result of the same method area(). According to LSP we’re suppose to get the same result.
+As the formula for calculating area for Rectangle is different from Square, Square should not be subclassed from Rectangle. Though Rectangle and Square share one common characteristic, which is both have four sides. So both suppose to inherit from a class called Quadrilateral(Shape with four sides).
+class Quadrilateral {
+// Quadrilateral - a quadrilateral is a polygon with four sides.
+  var side1Length: Int!
+  var side2Length: Int!
+  var side3Length: Int!
+  var side4Length: Int!
+  func setSide1Length(side1Length: Int) {
+     self.side1Length = side1Length
+  }
+  func setSide2Length(side2Length: Int) {
+     self.side2Length = side3Length
+  }
+  func setSide3Length(side3Length: Int) {
+     self.side3Length = side3Length
+  }
+  func setSide4Length(side4Length: Int) {
+     self.side4Length = side4Length
+  }
+  func numberOfSides(height: Int) {
+     return 4
+  }
+}
+class Square: Quadrilateral {
+  override func setSide1Length(side1Length: Int) {
+      self.side1Length = side1Length
+  }
+  override func setSide2Length(side2Length: Int) {
+      self.side2Length = side2Length
+  }
+  override func setSide3Length(side3Length: Int) {
+      self.side3Length = side3Length
+  }
+ override func setSide4Length(side4Length: Int) {
+      self.side4Length = side4Length
+  }
+ func area() -> Int {
+     return self.width * self.height
+  }
+}
+class Rectangle: Quadrilateral {
+  override func setSide1Length(side1Length: Int) {
+      self.side1Length = side1Length
+  }
+  override func setSide2Length(side2Length: Int) {
+      self.side2Length = side2Length
+  }
+  override func setSide3Length(side3Length: Int) {
+      self.side3Length = side3Length
+  }
+ override func setSide4Length(side4Length: Int) {
+      self.side4Length = side4Length
+  }
+ func area() -> Int {
+     return self.width * self.height
+  }
+}
+class ViewController: UIViewController {
+override func viewDidLoad() {
+      super.viewDidLoad()
+      let quad = getQuadrilateral()
+      quad.setSide1Length(width: 10)
+      quad.setSide2Length(height: 5)
+      quad.setSide3Length(height: 15)
+      quad.setSide4Length(height: 25)
+      print(quad.numberOfSides()) // It prints 4
+   }
+   func getQuadrilateral() -> Rectangle {
+      return Square.init()
+   }
+}
+So the point is never try to force subclass, always think before subclassing or write a class is such a way that it becomes eligible for subclass. Here all the methods of Quadrilateral are generic and really applied to any shape with 4 sides. Just because Rectangle and Square have 4 sides doesn’t mean Square is of type Rectangle.
+
+This example was naive and just to convey the thought. I have a real world example for iOS devs:
+class AppError: Error {
+     var errorCode: Int!
+     var message: String!
+     init() {
+        self.errorCode = 1000
+        self.message = "Sorry, Unknown error occurred."
+     }
+}
+class LowBatteryError: AppError {
+      override init() {
+        super.init()
+        self.errorCode = 2003
+        self.message = "Please charge your iPhone!"
+      }
+}
+class LowMemoryError: AppError {
+      override init() {
+          super.init()
+          self.errorCode = 3003
+          self.message = "Sorry, not enough space!"
+}
+// Hypothetical Situation: We need to show an error message, whenever things doesn't go well. We have an App which is very resource demanding so, whenever we feel App is not working as expected We call ErrorViewController.
+func showErrorMessage(error: NSError){
+   let alert = UIAlertController(title: "Crumble App", message:
+               error.message, preferredStyle: .alert)
+   self.present(alert, animated: true, completion: nil)
+}
+override func viewDidLoad() {
+    super.viewDidLoad()
+    if memory < 256 {
+       showErrorMessage(error: LowMemoryError.init())
+    }
+    else if batteryPercentage < 20 {
+       showErrorMessage(error: LowBatteryError.init())
+    }else {
+       showErrorMessage(error: AppError.init())
+    }
+}
+Now let’s have a list of points to keep in mind which will help us in writing a LSP complaint class:
+*
+Preconditions can’t be strengthened: A subclass cannot expect users to obey a stronger pre-condition than its parent. Explanation: Assume a parent class works with a member Int. Now your subclass requires that Int to be only positive. This is strengthening of pre-conditions, and now any code that worked perfectly fine before with negative Ints is broken.
+Example:
+class Rectangle {
+ var width: Int!
+ var height: Int!
+func setWidth(width: Int) {
+    if width < 0 { // This is precondition
+      self.width = width
+    }else{
+     print("Width can't be less than 0")
+    }
+  }
+}
+class Square: Rectangle {
+  override func setWidth(width: Int) {
+    // This is strengthening precondition
+    if width < 0 && width > 10000000000000000000000 {
+      self.width = width
+    }else{
+     print("Width can't be less than 0 and more than Int can
+           accommodate")
+    }
+  }
+}
+Now don't kill me, I have used the same stupid example.
+Note: Whatever data accepted as input should be validated, these are called guard statements or contracts.
+*
+Postconditions can’t be weakened: A derived object should not expect a weaker post-condition than its parent object guaranteed. Explanation: Assume parent class used to return the member Int as positive after doing all the operation. Now subclass changes the behavior to allow negative Ints also. This is weakening of post-conditions, and now any code that worked perfectly fine before with positive Ints is broken.
+Example:
+class Rectangle {
+   var width: Int!
+   var height: Int!
+   func area() -> UInt{
+       return self.width*self.height
+   }
+}
+class Square: Rectangle {
+    override func area() -> Int {
+    // This is weakening of post condition as return became type Int
+       and it can even return a negative value unlike UInt.
+       return self.width*self.height
+  }
+}
+*
+Invariants to be preserved: An invariant is a property of the program state that is always true. For instance, Sun rises from east, if I were to subclass a class called Universe, I can’t modify this behavior and say sun rises from west. Another example: A shop should be open till 11PM, so if we subclass the shop we are not suppose to change this unique behavior.
+class Shop {
+   var open: Bool!
+   func updateState() {
+      self.open = time < 23 && time > 7
+   }
+}
+class DownTownShop: Shop {
+   override func updateState() {
+      self.open = true
+   }
+}
+*
+History constraint shall be ensured: The subtypes should not introduce new methods that will allow modifying the state or variable in a way that is not possible for the parent class.
+Example:
+class Shop {
+    var shopKeepers: Int!
+    init(keepersCount: Int) {
+         self.shopKeepers = keepersCount
+    }
+}
+class DownTownShop: Shop {
+      override init(keepersCount: Int) {
+           super.init(keepersCount: keepersCount)
+      }
+      func setKeepersCount(count: Int) {
+           super.shopKeepers = count
+      }
+}
+In parent class Shop, shopKeepers count can only be set for once when the class is created but in child class shopKeepers value can be updated through setKeepersCount() method. Which is violation of LSP.
+
+
+4. Interface Segregation Principle
+
+In swift we have protocols instead of interface. Whenever a class follows a protocol it implements all of it’s methods. Sometimes what happens is one protocol have some extra methods which the class don’t really follow. Having methods available that you force to implement, clutter the classes. It also leads to all the problems discussed in the Single Responsibility Principle section. Thus implement an interface only when all of its methods, are really needed in the implementing class.
+Example:
+protocol Bird {
+    func feed(food: String)
+}
+protocol FlyingBird: Bird {
+    func setAltitude(altitude: Int)
+}
+protocol NonFlyingBird: Bird {
+    func setRunningSpeed(speed: Int)
+}
+class Parrot: FlyingBird {
+    func setAltitude(altitude: Int) {
+    }
+    func feed(food: String) {
+    }
+}
+class Ostrich: NonFlyingBird {
+    func setRunningSpeed(speed: Int) {
+    }
+    func feed(food: String) {
+    }
+}
+Can you imagine if we would’ve had a single protocol “Bird” with all the methods like below?
+protocol Bird {
+    func feed(food: String)
+    func setAltitude(altitude: Int)
+    func setRunningSpeed(speed: Int)
+}
+Ostrich would’ve flown and Parrot would’ve run 😃. So it is wise to have three different protocols.
+
+5.Dependency Inversion Principle
+
+It is all about decoupling of modules. High-level modules should not directly depend on low-level modules, both should depend on abstractions. Like ViewController, should not depend directly on networking component. Instead, it should depend on an abstraction of that component.
+Example:
+import UIKit
+class StudentViewController: UIViewController {
+      override func viewDidLoad() {
+         super.viewDidLoad()
+         let networkManager = NetworkManager.init()
+         let students = networkManager.fetchStudents()
+         self.title = students.first().name
+      }
+}
+class NetworkManager{
+   func fetchStudents()->[Student]{
+      ...
+        ...
+   }
+}
+Here StudentViewController is fully dependent on NetworkManager. Any changes in NetworkManager would affect StudentViewController. Does StudentViewController actually need list of all students to set a name as title? No. it just need one single student.
+Now think about this, for some reason fetchStudentsMethod() got changed, it takes school name as parameter. This change we lead to change in all other classes that is currently using fetchStudents() of NetworkManager.
+So now let’s see how abstraction could’ve done better.
+import UIKit
+class StudentViewController: UIViewController, StudentService {
+      override func viewDidLoad() {
+         super.viewDidLoad()
+         let networkManager = NetworkManager.init()
+         networkManager.fetchStudents()
+      }
+      func didFetchStudent(student: Student){
+           self.title = student.name
+      }
+}
+protocol StudentService {
+   func didFetchStudent(student: Student)
+}
+class NetworkManager{
+      private var studentService: StudentService
+      init(studentService: StudentService) {
+           self.studentService = studentService
+      }
+      func fetchStudents(){
+        ...
+          ...
+           studentService.didFetchStudent(student: student)
+      }
+}
+Here StudentViewController doesn’t have to care what NetworkManager does internally, it actually bothers about didFetchStudent() and StudentViewController is sure that it will get the student details from NetworkManager once it completes the operations. Thats the benefit of abstraction and dependency inversion or decoupling.
